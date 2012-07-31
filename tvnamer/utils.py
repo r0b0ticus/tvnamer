@@ -967,6 +967,7 @@ class Renamer(object):
     """Deals with renaming of files
     """
 
+
     def __init__(self, filename):
         self.filename = os.path.abspath(filename)
 
@@ -975,6 +976,9 @@ class Renamer(object):
         """
         filepath, filename = os.path.split(self.filename)
         filename, _ = os.path.splitext(filename)
+	global oldfileinfo
+	oldfileinfo = self.filename
+	p("self.filename: %s" % (self.filename))
 
         newpath = os.path.join(filepath, newName)
 
@@ -989,11 +993,13 @@ class Renamer(object):
 
     def newPath(self, new_path = None, new_fullpath = None, force = False, always_copy = False, always_move = False, create_dirs = True, getPathPreview = False):
         """Moves the file to a new path.
-
         If it is on the same partition, it will be moved (unless always_copy is True)
         If it is on a different partition, it will be copied.
         If the target file already exists, it will raise OSError unless force is True.
         """
+        old_fileinfo = self.filename
+	p("self.filename: %s" % (self.filename))
+	p("old_fileinfo: %s" % (old_fileinfo))
 
         if always_copy and always_move:
             raise ValueError("Both always_copy and always_move cannot be specified")
@@ -1048,10 +1054,14 @@ class Renamer(object):
                 # Same partition, but forced to copy
                 p("copy %s to %s" % (self.filename, new_fullpath))
                 shutil.copyfile(self.filename, new_fullpath)
+		p("Symlinking %s to %s" % (oldfileinfo, new_fullpath))
+		os.symlink(new_fullpath, oldfileinfo)
             else:
                 # Same partition, just rename the file to move it
                 p("move %s to %s" % (self.filename, new_fullpath))
                 os.rename(self.filename, new_fullpath)
+		p("Symlinking %s to %s" % (oldfileinfo, new_fullpath))
+		os.symlink(new_fullpath, oldfileinfo)
         else:
             # File is on different partition (different disc), copy it
             p("copy %s to %s" % (self.filename, new_fullpath))
@@ -1060,5 +1070,7 @@ class Renamer(object):
                 # Forced to move file, we just trash old file
                 p("Deleting %s" % (self.filename))
                 delete_file(self.filename)
+		p("Symlinking %s to %s" % (oldfileinfo, new_fullpath))
+		os.symlink(new_fullpath, oldfileinfo)
 
         self.filename = new_fullpath
